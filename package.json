@@ -1,0 +1,27 @@
+{
+  "name": "bittorrent-client",
+  "version": "1.0.0",
+  "main": "index.js",
+  "dependencies": {
+    "base64-arraybuffer": "^1.0.2",
+    "bencode": "^4.0.0",
+    "uint8-util": "^2.2.5",
+    "undici-types": "^7.12.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dim-anis/bittorrent-client.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/dim-anis/bittorrent-client/issues"
+  },
+  "homepage": "https://github.com/dim-anis/bittorrent-client#readme",
+  "description": ""
+}
