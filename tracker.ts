@@ -1,6 +1,6 @@
 import dgram from "dgram";
 import crypto from "node:crypto";
-import * as util from "./utils";
+import * as util from "./utils.ts";
 
 export default function getPeers(tracker: Uint8Array<ArrayBufferLike>) {
   return new Promise((resolve, reject) => {
@@ -59,7 +59,26 @@ function parseConnResp(res: Buffer<ArrayBuffer>) {
 }
 
 function parseAnnounceResp(res: Buffer<ArrayBuffer>) {
-  return "";
+  function group(iterable: Buffer<ArrayBuffer>, groupSize: number) {
+    let groups: Buffer<ArrayBuffer>[] = [];
+    for (let i = 0; i < iterable.length; i += groupSize) {
+      groups.push(iterable.subarray(i, i + groupSize));
+    }
+    return groups;
+  }
+
+  return {
+    action: res.readUInt32BE(0),
+    transactionId: res.readUInt32BE(4),
+    leechers: res.readUInt32BE(8),
+    seeders: res.readUInt32BE(12),
+    peers: group(res.subarray(20), 6).map((address) => {
+      return {
+        ip: address.subarray(0, 4).join("."),
+        port: address.readUInt16BE(4),
+      };
+    }),
+  };
 }
 
 function buildAnnounceReq(

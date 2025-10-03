@@ -1,11 +1,14 @@
-import * as fs from "node:fs";
-import bencode from "bencode";
-import getPeers from "./tracker";
+"use strict";
 
-const torrent = fs.readFileSync("./file.torrent");
-const announceList: Uint8Array[][] = bencode.decode(torrent)["announce-list"];
+import getPeers from "./tracker.ts";
+import * as torrentParser from "./torrent-parser.ts";
 
-for (const [tracker] of announceList) {
-  const peers = getPeers(tracker);
-  console.log(peers);
+const announceList = torrentParser.open("./file.torrent");
+
+async function main() {
+  for (const [tracker] of announceList) {
+    const peers = await getPeers(tracker);
+  }
 }
+
+main();
