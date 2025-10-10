@@ -9,7 +9,6 @@
     "uint8-util": "^2.2.5",
     "undici-types": "^7.12.0"
   },
-  "devDependencies": {},
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -24,5 +23,8 @@
     "url": "https://github.com/dim-anis/bittorrent-client/issues"
   },
   "homepage": "https://github.com/dim-anis/bittorrent-client#readme",
-  "description": ""
+  "description": "",
+  "devDependencies": {
+    "@types/bencode": "^2.0.4"
+  }
 }
