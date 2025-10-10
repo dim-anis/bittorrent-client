@@ -6,7 +6,7 @@ export default function getPeers(tracker: Uint8Array<ArrayBufferLike>) {
   return new Promise((resolve, reject) => {
     const socket = dgram.createSocket("udp4");
     const url = new URL(new TextDecoder().decode(tracker));
-    socket.send(buildConnReq(), Number(url.port), url.host, () => {});
+    socket.send(buildConnReq(), Number(url.port), url.hostname, () => {});
 
     socket.on("error", (err) => {
       socket.close();
@@ -20,7 +20,7 @@ export default function getPeers(tracker: Uint8Array<ArrayBufferLike>) {
 
           const announceReq = buildAnnounceReq(connResp.connectionId, tracker);
 
-          socket.send(announceReq, Number(url.port), url.host, () => {});
+          socket.send(announceReq, Number(url.port), url.hostname, () => {});
         } else if (respType(res) === "announce") {
           const announceResp = parseAnnounceResp(res);
 
