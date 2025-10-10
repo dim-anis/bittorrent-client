@@ -40,7 +40,7 @@ function buildConnReq() {
   const buf = Buffer.alloc(16);
 
   // connectionId
-  const connId = (0x417n << 32n) | 0x27101920n;
+  const connId = (0x417n << 32n) | 0x27101980n;
   buf.writeBigUint64BE(connId, 0);
   // action
   buf.writeUInt32BE(0, 8);
