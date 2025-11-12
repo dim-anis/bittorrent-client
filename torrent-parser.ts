@@ -13,7 +13,10 @@ export function size(torrent: any) {
     ? torrent.info.files.map((file) => file.length).reduce((a, b) => a + b)
     : torrent.info.length;
 
-  return BigInt(size);
+  const buf = Buffer.alloc(8);
+  buf.writeBigUint64BE(BigInt(size));
+
+  return buf;
 }
 export function infoHash(torrent: any) {
   const info = bencode.encode(torrent["info"]);
