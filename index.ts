@@ -6,9 +6,8 @@ import * as torrentParser from "./torrent-parser.ts";
 const torrent = torrentParser.open("./file.torrent");
 
 async function main() {
-  for (const [tracker] of torrent["announce-list"]) {
-    const peers = await getPeers(tracker);
-  }
+  const peers = await getPeers(torrent);
+  console.log({ peers });
 }
 
 main();
