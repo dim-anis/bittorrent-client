@@ -1,13 +1,12 @@
 "use strict";
 
-import getPeers from "./tracker.ts";
-import * as torrentParser from "./torrent-parser.ts";
+import * as torrentParser from "./src/torrent-parser.ts";
+import download from "./src/download.ts";
 
-const torrent = torrentParser.open("./file.torrent");
+const torrent = torrentParser.open(process.argv[2]);
 
 async function main() {
-  const peers = await getPeers(torrent);
-  console.log({ peers });
+  download(torrent);
 }
 
 main();
