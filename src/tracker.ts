@@ -3,6 +3,11 @@ import crypto from "node:crypto";
 import * as util from "./utils.ts";
 import * as torrentParser from "./torrent-parser.ts";
 
+export type Peer = {
+  ip: string;
+  port: number;
+};
+
 function createTrackerClient() {
   const socket = dgram.createSocket("udp4");
   const pending = new Map<number, { resolve: Function; reject: Function }>();
@@ -95,7 +100,9 @@ function createTrackerClient() {
   return { connectToTracker, close: () => socket.close() };
 }
 
-export default async function getPeers(torrent: Buffer<ArrayBufferLike>) {
+export default async function getPeers(
+  torrent: Buffer<ArrayBufferLike>,
+): Promise<Peer[]> {
   const client = createTrackerClient();
 
   const promises = torrent["announce-list"]
