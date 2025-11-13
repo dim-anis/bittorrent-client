@@ -18,7 +18,6 @@ function createTrackerClient() {
       if (type === "connect") {
         handler.resolve(msg);
       } else if (type === "announce") {
-        console.log("announce");
         handler.resolve(msg);
       }
     } catch (e) {
@@ -27,23 +26,6 @@ function createTrackerClient() {
     } finally {
       pending.delete(transactionId);
     }
-
-    // try {
-    //   if (respType(msg) === "connect") {
-    //     const connResp = parseConnResp(msg);
-    //
-    //     // const announceReq = buildAnnounceReq(connResp.connectionId, torrent);
-    //     //
-    //     // socket.send(announceReq, Number(url.port), url.hostname, () => {});
-    //   } else if (respType(msg) === "announce") {
-    //     const announceResp = parseAnnounceResp(msg);
-    //     socket.close();
-    //     handler.resolve(announceResp.peers);
-    //   }
-    // } catch (err) {
-    //   socket.close();
-    //   handler.reject(rinfo);
-    // }
   });
 
   socket.on("error", (err) => {
@@ -56,7 +38,6 @@ function createTrackerClient() {
   function connectToTracker(url: URL, torrent: Uint8Array<ArrayBufferLike>) {
     return new Promise((resolve, reject) => {
       const { buf: connReq, transactionId } = buildConnReq();
-      console.log({ transactionId });
 
       pending.set(transactionId, {
         resolve: (msg) => {
@@ -81,11 +62,8 @@ function createTrackerClient() {
       function onConnect(msg: Buffer<ArrayBufferLike>) {
         try {
           const connResp = parseConnResp(msg);
-          console.log({ connResp });
           const { buf: announceReq, transactionId: annReqId } =
             buildAnnounceReq(connResp.connectionId, torrent);
-
-          console.log({ annReqId });
 
           pending.set(annReqId, {
             resolve: (msg) => {
