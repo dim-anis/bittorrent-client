@@ -1,5 +1,5 @@
 import net from "node:net";
-import { buildHandshake, buildInterested } from "./message.ts";
+import { buildHandshake, buildInterested, parseMessage } from "./message.ts";
 import getPeers, { Peer } from "./tracker.ts";
 
 export default async (torrent: Buffer<ArrayBufferLike>) => {
@@ -44,8 +44,22 @@ function onWholeMessage(
 function msgHandler(msg: Buffer<ArrayBuffer>, socket: net.Socket) {
   if (isHandshake(msg)) {
     socket.write(buildInterested());
+  } else {
+    const message = parseMessage(msg);
+
+    if (message.id === 0) chokeHandler();
+    if (message.id === 1) unchokeHandler();
+    if (message.id === 4) haveHandler();
+    if (message.id === 5) bitfieldHandler();
+    if (message.id === 7) pieceHandler();
   }
 }
+
+function chokeHandler() {}
+function unchokeHandler() {}
+function haveHandler() {}
+function bitfieldHandler() {}
+function pieceHandler() {}
 
 function isHandshake(msg: Buffer<ArrayBuffer>) {
   return (

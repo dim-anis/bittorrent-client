@@ -1,6 +1,19 @@
 import * as utils from "./utils.ts";
 import { infoHash } from "./torrent-parser.ts";
 
+type Payload = {
+  index: number;
+  begin: number;
+  length?: number;
+  block?: number;
+};
+
+type Message = {
+  size: number;
+  id?: number;
+  payload?: Payload;
+};
+
 export function buildHandshake(torrent: Buffer<ArrayBufferLike>) {
   const buf = Buffer.alloc(68);
   // pstr length
@@ -152,4 +165,24 @@ export function buildPort(
   buf.writeUInt16BE(payload, 5);
 
   return buf;
+}
+
+export function parseMessage(msg: Buffer<ArrayBuffer>): Message {
+  const id = msg.length > 4 ? msg.readInt8(4) : undefined;
+  let payloadBuffer: any = msg.length > 5 ? msg.subarray(5) : undefined;
+  let parsedPayload: Message["payload"];
+
+  if (id === 6 || id === 7 || id === 8) {
+    const rest = payloadBuffer?.subarray(8);
+    parsedPayload = {
+      index: rest?.readUint32BE(0),
+      begin: rest?.readUint32BE(4),
+    };
+  }
+
+  return {
+    size: msg.readUint32BE(0),
+    id: id,
+    payload: parsedPayload,
+  };
 }
