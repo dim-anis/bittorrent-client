@@ -1,22 +1,22 @@
 import net from "node:net";
+import { buildHandshake, buildInterested } from "./message.ts";
 import getPeers, { Peer } from "./tracker.ts";
 
 export default async (torrent: Buffer<ArrayBufferLike>) => {
   const peers = await getPeers(torrent);
-  peers.forEach((peer) => download(peer));
+  peers.forEach((peer) => download(peer, torrent));
 };
 
-function download(peer: Peer) {
+function download(peer: Peer, torrent: Buffer<ArrayBufferLike>) {
   const socket = new net.Socket();
 
   socket.on("error", console.error);
 
   socket.connect(peer.port, peer.ip, () => {
-    // socket.write()
+    socket.write(buildHandshake(torrent));
   });
-  onWholeMessage(socket, (data) => {
-    // handle data
-  });
+
+  onWholeMessage(socket, (msg) => msgHandler(msg, socket));
 }
 
 function onWholeMessage(
@@ -39,4 +39,17 @@ function onWholeMessage(
       handshake = false;
     }
   });
+}
+
+function msgHandler(msg: Buffer<ArrayBuffer>, socket: net.Socket) {
+  if (isHandshake(msg)) {
+    socket.write(buildInterested());
+  }
+}
+
+function isHandshake(msg: Buffer<ArrayBuffer>) {
+  return (
+    msg.length === msg.readUint8(0) + 49 &&
+    msg.toString("utf8", 1) === "BitTorrent protocol"
+  );
 }
