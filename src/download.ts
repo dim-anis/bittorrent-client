@@ -1,13 +1,26 @@
 import net from "node:net";
-import { buildHandshake, buildInterested, parseMessage } from "./message.ts";
-import getPeers, { Peer } from "./tracker.ts";
+import {
+  buildHandshake,
+  buildInterested,
+  buildRequest,
+  parseMessage,
+} from "./message.ts";
+import getPeers, { type Peer } from "./tracker.ts";
+import { PieceManager } from "./pieces.ts";
+
+type Queue = { choked: boolean; queue: any[] };
 
 export default async (torrent: Buffer<ArrayBufferLike>) => {
   const peers = await getPeers(torrent);
-  peers.forEach((peer) => download(peer, torrent));
+  const pieces = new PieceManager(torrent.info.pieces.length / 20);
+  peers.forEach((peer) => download(peer, torrent, pieces));
 };
 
-function download(peer: Peer, torrent: Buffer<ArrayBufferLike>) {
+function download(
+  peer: Peer,
+  torrent: Buffer<ArrayBufferLike>,
+  pieces: PieceManager,
+) {
   const socket = new net.Socket();
 
   socket.on("error", console.error);
@@ -16,7 +29,8 @@ function download(peer: Peer, torrent: Buffer<ArrayBufferLike>) {
     socket.write(buildHandshake(torrent));
   });
 
-  onWholeMessage(socket, (msg) => msgHandler(msg, socket));
+  const queue = { choked: true, queue: [] };
+  onWholeMessage(socket, (msg) => msgHandler(msg, socket, pieces, queue));
 }
 
 function onWholeMessage(
@@ -41,22 +55,36 @@ function onWholeMessage(
   });
 }
 
-function msgHandler(msg: Buffer<ArrayBuffer>, socket: net.Socket) {
+function msgHandler(
+  msg: Buffer<ArrayBuffer>,
+  socket: net.Socket,
+  pieces: PieceManager,
+  queue: Queue,
+) {
   if (isHandshake(msg)) {
     socket.write(buildInterested());
   } else {
     const message = parseMessage(msg);
 
-    if (message.id === 0) chokeHandler();
-    if (message.id === 1) unchokeHandler();
+    if (message.id === 0) chokeHandler(socket);
+    if (message.id === 1) unchokeHandler(socket, pieces, queue);
     if (message.id === 4) haveHandler();
     if (message.id === 5) bitfieldHandler();
     if (message.id === 7) pieceHandler();
   }
 }
 
-function chokeHandler() {}
-function unchokeHandler() {}
+function chokeHandler(socket: net.Socket) {
+  socket.end();
+}
+function unchokeHandler(
+  socket: net.Socket,
+  pieces: PieceManager,
+  queue: Queue,
+) {
+  queue.choked = false;
+  requestPiece(socket, pieces, queue);
+}
 function haveHandler() {}
 function bitfieldHandler() {}
 function pieceHandler() {}
@@ -66,4 +94,18 @@ function isHandshake(msg: Buffer<ArrayBuffer>) {
     msg.length === msg.readUint8(0) + 49 &&
     msg.toString("utf8", 1) === "BitTorrent protocol"
   );
+}
+function requestPiece(socket: net.Socket, pieces: PieceManager, queue: Queue) {
+  if (queue.choked) {
+    return null;
+  }
+
+  while (queue.queue.length) {
+    const pieceIndex = queue.queue.shift();
+    if (!pieces.isPieceComplete(pieceIndex)) {
+      socket.write(buildRequest(pieceIndex));
+      pieces.add(pieceIndex);
+      break;
+    }
+  }
 }
