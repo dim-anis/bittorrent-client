@@ -2,6 +2,7 @@ import dgram from "dgram";
 import crypto from "node:crypto";
 import * as util from "./utils.ts";
 import * as torrentParser from "./torrent-parser.ts";
+import { size } from "./torrent-parser.ts";
 
 export type Peer = {
   ip: string;
@@ -186,7 +187,7 @@ function buildAnnounceReq(
   // downloaded
   Buffer.alloc(8).copy(buf, 56);
   // left
-  torrentParser.size(torrent).copy(buf, 64);
+  buf.writeBigUint64BE(BigInt(size(torrent)), 64);
   // uploaded
   Buffer.alloc(8).copy(buf, 72);
   // event
