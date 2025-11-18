@@ -1,5 +1,3 @@
-"use strict";
-
 import * as torrentParser from "./src/torrent-parser.ts";
 import download from "./src/download.ts";
 

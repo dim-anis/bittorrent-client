@@ -1,5 +1,3 @@
-"use strict";
-
 import fs from "node:fs";
 import bencode from "bencode";
 import crypto from "node:crypto";
