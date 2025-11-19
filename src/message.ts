@@ -1,14 +1,14 @@
 import * as utils from "./utils.ts";
 import { infoHash } from "./torrent-parser.ts";
 
-type Payload = {
+export type Payload = {
   index: number;
   begin: number;
   length?: number;
   block?: number;
 };
 
-type Message = {
+export type Message = {
   size: number;
   id?: number;
   payload?: Payload;
@@ -98,10 +98,7 @@ export function buildBitfield(
 
   return buf;
 }
-export function buildRequest(
-  // payload will be a struct
-  payload: Buffer<ArrayBufferLike>,
-) {
+export function buildRequest(payload: Payload) {
   const buf = Buffer.alloc(17);
   // length
   buf.writeUInt32BE(13, 0);
@@ -116,10 +113,7 @@ export function buildRequest(
 
   return buf;
 }
-export function buildPiece(
-  // payload will be a struct
-  payload: Buffer<ArrayBufferLike>,
-) {
+export function buildPiece(payload: Payload) {
   const buf = Buffer.alloc(payload.block.length + 13);
   // length
   buf.writeUInt32BE(payload.block.length + 9, 0);
@@ -134,10 +128,7 @@ export function buildPiece(
 
   return buf;
 }
-export function buildCancel(
-  // payload will be a struct
-  payload: Buffer<ArrayBufferLike>,
-) {
+export function buildCancel(payload: Payload) {
   const buf = Buffer.alloc(17);
   // length
   buf.writeUInt32BE(13, 0);

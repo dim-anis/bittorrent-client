@@ -4,15 +4,15 @@ import {
   buildInterested,
   buildRequest,
   parseMessage,
+  type Payload,
 } from "./message.ts";
 import getPeers, { type Peer } from "./tracker.ts";
 import { PieceManager } from "./pieces.ts";
+import { BlockQueue } from "./queue.ts";
 
-type Queue = { choked: boolean; queue: any[] };
-
-export default async (torrent: Buffer<ArrayBufferLike>) => {
+export default async (torrent: any) => {
   const peers = await getPeers(torrent);
-  const pieces = new PieceManager(torrent.info.pieces.length / 20);
+  const pieces = new PieceManager(torrent);
   peers.forEach((peer) => download(peer, torrent, pieces));
 };
 
@@ -29,7 +29,7 @@ function download(
     socket.write(buildHandshake(torrent));
   });
 
-  const queue = { choked: true, queue: [] };
+  const queue = new BlockQueue(torrent);
   onWholeMessage(socket, (msg) => msgHandler(msg, socket, pieces, queue));
 }
 
@@ -59,7 +59,7 @@ function msgHandler(
   msg: Buffer<ArrayBuffer>,
   socket: net.Socket,
   pieces: PieceManager,
-  queue: Queue,
+  queue: BlockQueue,
 ) {
   if (isHandshake(msg)) {
     socket.write(buildInterested());
@@ -80,7 +80,7 @@ function chokeHandler(socket: net.Socket) {
 function unchokeHandler(
   socket: net.Socket,
   pieces: PieceManager,
-  queue: Queue,
+  queue: BlockQueue,
 ) {
   queue.choked = false;
   requestPiece(socket, pieces, queue);
@@ -95,16 +95,20 @@ function isHandshake(msg: Buffer<ArrayBuffer>) {
     msg.toString("utf8", 1) === "BitTorrent protocol"
   );
 }
-function requestPiece(socket: net.Socket, pieces: PieceManager, queue: Queue) {
-  if (queue.choked) {
+function requestPiece(
+  socket: net.Socket,
+  pieces: PieceManager,
+  blockQueue: BlockQueue,
+) {
+  if (blockQueue.choked) {
     return null;
   }
 
-  while (queue.queue.length) {
-    const pieceIndex = queue.queue.shift();
-    if (!pieces.isPieceComplete(pieceIndex)) {
-      socket.write(buildRequest(pieceIndex));
-      pieces.add(pieceIndex);
+  while (blockQueue.length()) {
+    const pieceBlock = blockQueue.deque() as Payload;
+    if (!pieces.isBlockComplete(pieceBlock)) {
+      socket.write(buildRequest(pieceBlock));
+      pieces.add(pieceBlock.index);
       break;
     }
   }
