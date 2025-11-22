@@ -68,8 +68,8 @@ function msgHandler(
 
     if (message.id === 0) chokeHandler(socket);
     if (message.id === 1) unchokeHandler(socket, pieces, queue);
-    if (message.id === 4) haveHandler();
-    if (message.id === 5) bitfieldHandler();
+    if (message.id === 4) haveHandler(socket, pieces, queue, msg);
+    if (message.id === 5) bitfieldHandler(socket, pieces, queue, msg);
     if (message.id === 7) pieceHandler();
   }
 }
@@ -85,8 +85,40 @@ function unchokeHandler(
   queue.choked = false;
   requestPiece(socket, pieces, queue);
 }
-function haveHandler() {}
-function bitfieldHandler() {}
+function haveHandler(
+  socket: net.Socket,
+  pieces: PieceManager,
+  blockQueue: BlockQueue,
+  payload: Buffer<ArrayBuffer>,
+) {
+  const pieceIndex = payload.readUint32BE(0);
+  const queueEmpty = blockQueue.length() === 0;
+  blockQueue.queue(pieceIndex);
+  if (queueEmpty) {
+    requestPiece(socket, pieces, blockQueue);
+  }
+}
+function bitfieldHandler(
+  socket: net.Socket,
+  pieces: PieceManager,
+  blockQueue: BlockQueue,
+  payload: Buffer<ArrayBuffer>,
+) {
+  const queueEmpty = blockQueue.length() === 0;
+
+  payload.forEach((byte, i) => {
+    for (let j = 0; j < 8; j++) {
+      if (byte % 2) {
+        blockQueue.queue(i * 8 + 7 - j);
+      }
+      byte = Math.floor(byte / 2);
+    }
+  });
+
+  if (queueEmpty) {
+    requestPiece(socket, pieces, blockQueue);
+  }
+}
 function pieceHandler() {}
 
 function isHandshake(msg: Buffer<ArrayBuffer>) {
