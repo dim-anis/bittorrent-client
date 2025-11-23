@@ -1,4 +1,4 @@
-import { Payload } from "./message.ts";
+import { type Payload } from "./message.ts";
 import { BLOCK_LEN, blocksPerPiece } from "./torrent-parser.ts";
 
 const BlockState = {
@@ -33,14 +33,17 @@ export class PieceManager {
     }
   }
 
-  add(pieceIndex: number): void {
-    this.#pieces[pieceIndex].requested = true;
+  markBlockRequested(pieceBlock: Payload): void {
+    const blockIndex = pieceBlock.begin / BLOCK_LEN;
+    this.#pieces[pieceBlock.index][blockIndex].requested =
+      BlockState.inProgress;
   }
-  markBlockFinished(pieceIndex: number, blockIndex: number): void {
-    this.#pieces[pieceIndex].blocks[blockIndex] = BlockState.finished;
+  markBlockFinished(pieceBlock: Payload): void {
+    const blockIndex = pieceBlock.begin / BLOCK_LEN;
+    this.#pieces[pieceBlock.index].blocks[blockIndex] = BlockState.finished;
 
-    if (this.isPieceComplete(pieceIndex)) {
-      this.#pieces[pieceIndex].finished = true;
+    if (this.isPieceComplete(pieceBlock.index)) {
+      this.#pieces[pieceBlock.index].finished = true;
     }
   }
   isBlockComplete(pieceBlock: Payload) {

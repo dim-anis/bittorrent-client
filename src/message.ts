@@ -8,6 +8,10 @@ export type Payload = {
   block?: number;
 };
 
+export type PieceResponse = Omit<Payload, "block"> & {
+  block: Buffer;
+};
+
 export type Message = {
   size: number;
   id?: number;
@@ -143,10 +147,7 @@ export function buildCancel(payload: Payload) {
 
   return buf;
 }
-export function buildPort(
-  // payload will be a struct
-  payload: Buffer<ArrayBufferLike>,
-) {
+export function buildPort(payload: number) {
   const buf = Buffer.alloc(7);
   // length
   buf.writeUInt32BE(3, 0);
