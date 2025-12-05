@@ -106,15 +106,10 @@ export default async function getPeers(
 ): Promise<Peer[]> {
   const client = createTrackerClient();
 
-  const promises = torrent["announce-list"]
-    .map(([tracker]) => {
-      const url = new URL(new TextDecoder().decode(tracker));
-      if (url.href !== "udp://torrent.gresille.org:80/announce") {
-        return client.connectToTracker(url, torrent);
-      }
-      return null;
-    })
-    .filter(Boolean);
+  const promises = torrent["announce-list"].map(([tracker]) => {
+    const url = new URL(new TextDecoder().decode(tracker));
+    return client.connectToTracker(url, torrent);
+  });
 
   return Promise.any(promises).finally(() => client.close());
 }
