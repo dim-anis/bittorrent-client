@@ -165,10 +165,10 @@ export function parseMessage(msg: Buffer<ArrayBuffer>): Message {
   let parsedPayload: Message["payload"];
 
   if (id === 6 || id === 7 || id === 8) {
-    const rest = payloadBuffer?.subarray(8);
+    const rest = payloadBuffer.subarray(8);
     parsedPayload = {
-      index: rest?.readUint32BE(0),
-      begin: rest?.readUint32BE(4),
+      index: payloadBuffer.readUint32BE(0),
+      begin: payloadBuffer.readUint32BE(4),
     };
   }
 
