@@ -43,7 +43,7 @@ function onWholeMessage(
   socket: net.Socket,
   cb: (data: Buffer<ArrayBuffer>) => void,
 ) {
-  let savedBuf = Buffer.alloc(4);
+  let savedBuf = Buffer.alloc(0);
   let handshake = true;
 
   socket.on("data", (recvBuf: Buffer<ArrayBufferLike>) => {
