@@ -143,7 +143,6 @@ function pieceHandler(
   fileDescriptor: number,
   pieceResp: PieceResponse,
 ) {
-  console.log(pieceResp);
   pieces.markBlockFinished(pieceResp);
 
   const offset =
