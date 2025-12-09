@@ -170,6 +170,7 @@ export function parseMessage(msg: Buffer<ArrayBuffer>): Message {
       index: payloadBuffer.readUint32BE(0),
       begin: payloadBuffer.readUint32BE(4),
     };
+    parsedPayload[id === 7 ? "block" : "length"] = rest;
   }
 
   return {
