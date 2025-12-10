@@ -5,11 +5,7 @@ export type Payload = {
   index: number;
   begin: number;
   length?: number;
-  block?: number;
-};
-
-export type PieceResponse = Omit<Payload, "block"> & {
-  block: Buffer;
+  block?: Buffer<ArrayBuffer>;
 };
 
 export type Message = {

@@ -5,7 +5,6 @@ import {
   buildInterested,
   buildRequest,
   parseMessage,
-  type PieceResponse,
   type Payload,
 } from "./message.ts";
 import getPeers, { type Peer } from "./tracker.ts";
@@ -143,7 +142,7 @@ function pieceHandler(
   blockQueue: BlockQueue,
   torrent: any,
   fileDescriptor: number,
-  pieceResp: PieceResponse,
+  pieceResp: Payload,
 ) {
   pieces.markBlockFinished(pieceResp);
 
@@ -151,9 +150,9 @@ function pieceHandler(
     pieceResp.index * torrent.info["piece length"] + pieceResp.begin;
   fs.write(
     fileDescriptor,
-    pieceResp.block,
+    pieceResp.block!,
     0,
-    pieceResp.block.length,
+    pieceResp.block!.length,
     offset,
     () => {},
   );
