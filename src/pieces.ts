@@ -42,9 +42,9 @@ export class PieceManager {
 
   markBlockRequested(pieceBlock: Payload): void {
     const blockIndex = pieceBlock.begin / BLOCK_LEN;
-    this.#pieces[pieceBlock.index][blockIndex].requested =
-      BlockState.inProgress;
+    this.#pieces[pieceBlock.index].blocks[blockIndex] = BlockState.inProgress;
   }
+
   markBlockFinished(pieceBlock: Payload): void {
     const blockIndex = pieceBlock.begin / BLOCK_LEN;
     this.#pieces[pieceBlock.index].blocks[blockIndex] = BlockState.finished;
