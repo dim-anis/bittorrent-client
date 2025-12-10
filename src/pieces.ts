@@ -1,4 +1,5 @@
 import { type Payload } from "./message.ts";
+import { showProgressBar } from "./progressBar.ts";
 import { BLOCK_LEN, blocksPerPiece } from "./torrent-parser.ts";
 
 const BlockState = {
@@ -44,6 +45,7 @@ export class PieceManager {
 
     if (this.isPieceComplete(pieceBlock.index)) {
       this.#pieces[pieceBlock.index].finished = true;
+      this.logProgress();
     }
   }
   isBlockComplete(pieceBlock: Payload) {

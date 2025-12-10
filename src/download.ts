@@ -11,11 +11,13 @@ import {
 import getPeers, { type Peer } from "./tracker.ts";
 import { PieceManager } from "./pieces.ts";
 import { BlockQueue } from "./queue.ts";
+import { showEmptyProgressBar } from "./progressBar.ts";
 
 export default async (torrent: any, path: string) => {
   const peers = await getPeers(torrent);
   const pieces = new PieceManager(torrent);
   const file = fs.openSync(path, "w");
+  showEmptyProgressBar();
   peers.forEach((peer) => download(peer, torrent, pieces, file));
 };
 
