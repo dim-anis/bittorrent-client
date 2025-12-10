@@ -28,7 +28,7 @@ function download(
 ) {
   const socket = new net.Socket();
 
-  socket.on("error", console.error);
+  socket.on("error", () => {});
 
   socket.connect(peer.port, peer.ip, () => {
     socket.write(buildHandshake(torrent));
