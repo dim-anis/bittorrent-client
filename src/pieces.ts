@@ -54,9 +54,11 @@ export class PieceManager {
       this.#pieces[pieceBlock.index].blocks[blockIndex] === BlockState.finished
     );
   }
-  isComplete(): boolean {
+
+  isTorrentComplete(): boolean {
     return this.#pieces.every((piece) => piece.finished);
   }
+
   isPieceComplete(pieceIndex: number) {
     return this.#pieces[pieceIndex].blocks.every(
       (block) => block === BlockState.finished,

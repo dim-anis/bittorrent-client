@@ -158,7 +158,7 @@ function pieceHandler(
     () => {},
   );
 
-  if (pieces.isComplete()) {
+  if (pieces.isTorrentComplete()) {
     socket.end();
     console.log("Download finished");
     try {
