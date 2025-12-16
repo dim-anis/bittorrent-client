@@ -171,7 +171,7 @@ function pieceHandler(
 function isHandshake(msg: Buffer<ArrayBuffer>) {
   return (
     msg.length === msg.readUint8(0) + 49 &&
-    msg.toString("utf8", 1) === "BitTorrent protocol"
+    msg.toString("utf8", 1, 20) === "BitTorrent protocol"
   );
 }
 function requestPiece(
