@@ -155,7 +155,7 @@ export function buildPort(payload: number) {
 }
 
 export function parseMessage(msg: Buffer<ArrayBuffer>): Message {
-  const id = msg.length > 4 ? msg.readInt8(4) : undefined;
+  const id = msg.length > 4 ? msg.readUInt8(4) : undefined;
   let payloadBuffer: any = msg.length > 5 ? msg.subarray(5) : undefined;
   let parsedPayload: Message["payload"];
 
