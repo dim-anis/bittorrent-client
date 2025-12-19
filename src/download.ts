@@ -154,14 +154,15 @@ function bitfieldHandler(
 ) {
   const queueEmpty = blockQueue.length() === 0;
 
-  payload.forEach((byte, i) => {
+  for (let i = 0; i < payload.length; i++) {
+    const byte = payload[i];
     for (let j = 0; j < 8; j++) {
-      if (byte % 2) {
-        blockQueue.queue(i * 8 + 7 - j);
+      const pieceIndex = i * 8 + j;
+      if (byte & (1 << (7 - j))) {
+        blockQueue.queue(pieceIndex);
       }
-      byte = Math.floor(byte / 2);
     }
-  });
+  }
 
   if (queueEmpty) {
     requestPiece(socket, pieces, blockQueue);
