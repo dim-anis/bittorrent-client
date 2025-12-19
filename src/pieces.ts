@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 import { type Payload } from "./message.ts";
 import { showProgressBar } from "./progressBar.ts";
 import { BLOCK_LEN, blocksPerPiece } from "./torrent-parser.ts";
+import { FileHandler } from "./files.ts";
 
 const BlockState = {
   idle: 0,
@@ -46,6 +47,7 @@ export class PieceManager {
   }
 
   markBlockFinished(pieceBlock: Payload): void {
+  markBlockFinished(pieceBlock: Payload, fileHandler: FileHandler): void {
     const blockIndex = pieceBlock.begin / BLOCK_LEN;
     this.#pieces[pieceBlock.index].blocks[blockIndex] = BlockState.finished;
     const blockLen = pieceBlock.block?.length;
@@ -61,6 +63,7 @@ export class PieceManager {
 
       this.#pieces[pieceBlock.index].finished = true;
       this.logProgress();
+      fileHandler.writePieceToDisk(pieceBlock.index, pieceBuffer);
     }
   }
 

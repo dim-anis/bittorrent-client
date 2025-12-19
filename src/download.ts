@@ -11,11 +11,13 @@ import getPeers, { type Peer } from "./tracker.ts";
 import { PieceManager } from "./pieces.ts";
 import { BlockQueue } from "./queue.ts";
 import { showEmptyProgressBar } from "./progressBar.ts";
+import { FileHandler } from "./files.ts";
 
 export default async (torrent: any, path: string) => {
   const peers = await getPeers(torrent);
   const pieces = new PieceManager(torrent);
   const file = fs.openSync(path, "w");
+  const fileHandler = new FileHandler(torrent.info, downloadDir);
   showEmptyProgressBar();
   peers.forEach((peer) => download(peer, torrent, pieces, file));
 };
@@ -37,6 +39,7 @@ function download(
   const queue = new BlockQueue(torrent);
   onWholeMessage(socket, (msg) =>
     msgHandler(msg, socket, pieces, queue, torrent, fileDescriptor),
+    msgHandler(msg, socket, pieces, queue, fileHandler),
   );
 }
 
@@ -69,6 +72,7 @@ function msgHandler(
   queue: BlockQueue,
   torrent: any,
   fileDescriptor: number,
+  fileHandler: FileHandler,
 ) {
   if (isHandshake(msg)) {
     socket.write(buildInterested());
@@ -88,6 +92,7 @@ function msgHandler(
         fileDescriptor,
         message.payload,
       );
+      pieceHandler(socket, pieces, queue, fileHandler, message.payload!);
   }
 }
 
@@ -142,6 +147,7 @@ function pieceHandler(
   blockQueue: BlockQueue,
   torrent: any,
   fileDescriptor: number,
+  fileHandler: FileHandler,
   pieceResp: Payload,
 ) {
   pieces.markBlockFinished(pieceResp);
@@ -156,8 +162,10 @@ function pieceHandler(
     offset,
     () => {},
   );
+  pieces.markBlockFinished(pieceResp, fileHandler);
 
   if (pieces.isTorrentComplete()) {
+    fileHandler.closeDescriptors();
     socket.end();
     console.log("Download finished");
     try {
