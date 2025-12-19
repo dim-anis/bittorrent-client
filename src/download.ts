@@ -160,7 +160,6 @@ function pieceHandler(
   socket: net.Socket,
   pieces: PieceManager,
   blockQueue: BlockQueue,
-  torrent: any,
   fileHandler: FileHandler,
   pieceResp: Payload,
 ) {
