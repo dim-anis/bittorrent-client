@@ -13,7 +13,9 @@ import { BlockQueue } from "./queue.ts";
 import { showEmptyProgressBar } from "./progressBar.ts";
 import { FileHandler } from "./files.ts";
 
-export default async (torrent: any, path: string) => {
+const HANDSHAKE_LENGTH = 68;
+
+export default async (torrent: any, downloadDir = "downloads") => {
   const peers = await getPeers(torrent);
   const pieces = new PieceManager(torrent);
   const file = fs.openSync(path, "w");
@@ -51,16 +53,36 @@ function onWholeMessage(
   let handshake = true;
 
   socket.on("data", (recvBuf: Buffer<ArrayBufferLike>) => {
-    // handle response
-    let msgLen = () =>
-      handshake ? savedBuf.readUint8(0) + 49 : savedBuf.readUint32BE(0) + 4;
-    // write to buf
+    // write chunk to buf
     savedBuf = Buffer.concat([savedBuf, recvBuf]);
 
-    while (savedBuf.length >= 4 && savedBuf.length >= msgLen()) {
-      cb(savedBuf.subarray(0, msgLen()));
-      savedBuf = savedBuf.subarray(msgLen());
-      handshake = false;
+    let msgLength: number;
+
+    while (true) {
+      if (handshake) {
+        msgLength = HANDSHAKE_LENGTH;
+      } else {
+        // length prefix is 4 bytes
+        if (savedBuf.length < 4) break;
+
+        const payloadSize = savedBuf.readUInt32BE(0);
+
+        // handle Keep-Alive
+        if (payloadSize === 0) {
+          savedBuf = savedBuf.subarray(4);
+          continue;
+        }
+
+        msgLength = payloadSize + 4;
+      }
+
+      if (savedBuf.length >= msgLength) {
+        cb(savedBuf.subarray(0, msgLength));
+        savedBuf = savedBuf.subarray(msgLength);
+        handshake = false;
+      } else {
+        break;
+      }
     }
   });
 }
