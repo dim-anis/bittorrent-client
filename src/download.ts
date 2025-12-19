@@ -1,4 +1,3 @@
-import fs from "node:fs";
 import net from "node:net";
 import {
   buildHandshake,
