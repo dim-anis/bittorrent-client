@@ -85,7 +85,6 @@ export function buildHave(payload: number) {
 }
 export function buildBitfield(
   bitfield: Buffer<ArrayBufferLike>,
-  // payload will be a struct
   payload: Buffer<ArrayBufferLike>,
 ) {
   const buf = Buffer.alloc(14);
