@@ -21,7 +21,7 @@ node index.ts <path_to_torrent_file>
 
 ### Configuration
 
-By default, files are saved to the current directory under `downloads`. To specify a custom download location, create a .env file in the root directory and add:
+By default, files are saved to the current directory under `downloads`. To specify a custom download location, create a `.env` file in the root directory and add:
 
 ```env
 DOWNLOAD_DIR=downloads
