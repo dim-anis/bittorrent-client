@@ -17,11 +17,16 @@ const HANDSHAKE_LENGTH = 68;
 
 export default async (torrent: any, downloadDir = "downloads") => {
   const peers = await getPeers(torrent);
+  const availablePeers = peers
+    .filter((res) => res.status === "fulfilled")
+    .flatMap((peer) => peer.value.peers);
   const pieces = new PieceManager(torrent);
   const file = fs.openSync(path, "w");
   const fileHandler = new FileHandler(torrent.info, downloadDir);
   showEmptyProgressBar();
-  peers.forEach((peer) => download(peer, torrent, pieces, file));
+  availablePeers.forEach((peer) =>
+    download(peer, torrent, pieces, fileHandler),
+  );
 };
 
 function download(
