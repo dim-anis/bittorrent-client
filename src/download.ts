@@ -20,7 +20,6 @@ export default async (torrent: any, downloadDir = "downloads") => {
     .filter((res) => res.status === "fulfilled")
     .flatMap((peer) => peer.value.peers);
   const pieces = new PieceManager(torrent);
-  const file = fs.openSync(path, "w");
   const fileHandler = new FileHandler(torrent.info, downloadDir);
   showEmptyProgressBar();
   availablePeers.forEach((peer) =>
@@ -32,7 +31,7 @@ function download(
   peer: Peer,
   torrent: Buffer<ArrayBufferLike>,
   pieces: PieceManager,
-  fileDescriptor: number,
+  fileHandler: FileHandler,
 ) {
   const socket = new net.Socket();
 
@@ -44,7 +43,6 @@ function download(
 
   const queue = new BlockQueue(torrent);
   onWholeMessage(socket, (msg) =>
-    msgHandler(msg, socket, pieces, queue, torrent, fileDescriptor),
     msgHandler(msg, socket, pieces, queue, fileHandler),
   );
 }
@@ -96,8 +94,6 @@ function msgHandler(
   socket: net.Socket,
   pieces: PieceManager,
   queue: BlockQueue,
-  torrent: any,
-  fileDescriptor: number,
   fileHandler: FileHandler,
 ) {
   if (isHandshake(msg)) {
@@ -110,14 +106,6 @@ function msgHandler(
     if (message.id === 4) haveHandler(socket, pieces, queue, msg);
     if (message.id === 5) bitfieldHandler(socket, pieces, queue, msg);
     if (message.id === 7)
-      pieceHandler(
-        socket,
-        pieces,
-        queue,
-        torrent,
-        fileDescriptor,
-        message.payload,
-      );
       pieceHandler(socket, pieces, queue, fileHandler, message.payload!);
   }
 }
@@ -173,31 +161,15 @@ function pieceHandler(
   pieces: PieceManager,
   blockQueue: BlockQueue,
   torrent: any,
-  fileDescriptor: number,
   fileHandler: FileHandler,
   pieceResp: Payload,
 ) {
-  pieces.markBlockFinished(pieceResp);
-
-  const offset =
-    pieceResp.index * torrent.info["piece length"] + pieceResp.begin;
-  fs.write(
-    fileDescriptor,
-    pieceResp.block!,
-    0,
-    pieceResp.block!.length,
-    offset,
-    () => {},
-  );
   pieces.markBlockFinished(pieceResp, fileHandler);
 
   if (pieces.isTorrentComplete()) {
     fileHandler.closeDescriptors();
     socket.end();
     console.log("Download finished");
-    try {
-      fs.closeSync(fileDescriptor);
-    } catch (error) {}
   } else {
     requestPiece(socket, pieces, blockQueue);
   }
