@@ -4,8 +4,8 @@ import crypto from "node:crypto";
 
 export const BLOCK_LEN = Math.pow(2, 14);
 
-function pieceLength(torrent: any, pieceIndex: number) {
-  const totalLength = Number(BigInt(size(torrent)));
+export function pieceLength(torrent: any, pieceIndex: number) {
+  const totalLength = size(torrent);
   const pieceLength = torrent.info["piece length"];
 
   const lastPieceLength = totalLength % pieceLength;
@@ -24,7 +24,7 @@ export function blockLength(
   pieceIndex: number,
   blockIndex: number,
 ) {
-  const pLength = Number(BigInt(pieceLength(torrent, pieceIndex)));
+  const pLength = pieceLength(torrent, pieceIndex);
 
   const lastBlockLength = pLength % BLOCK_LEN;
   const lastBlockIndex = Math.floor(pLength / BLOCK_LEN);
@@ -41,7 +41,7 @@ export function size(torrent: any): number {
     ? torrent.info.files.map((file) => file.length).reduce((a, b) => a + b)
     : torrent.info.length;
 
-  return size;
+  return Number(BigInt(size));
 }
 export function infoHash(torrent: any) {
   const info = bencode.encode(torrent["info"]);
