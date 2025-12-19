@@ -21,6 +21,7 @@ export default async (torrent: any, downloadDir = "downloads") => {
     .flatMap((peer) => peer.value.peers);
   const pieces = new PieceManager(torrent);
   const fileHandler = new FileHandler(torrent.info, downloadDir);
+
   showEmptyProgressBar();
   availablePeers.forEach((peer) =>
     download(peer, torrent, pieces, fileHandler),
@@ -127,7 +128,8 @@ function haveHandler(
   blockQueue: BlockQueue,
   payload: Buffer<ArrayBuffer>,
 ) {
-  const pieceIndex = payload.readUint32BE(0);
+  // piece index starts from offset 5
+  const pieceIndex = payload.readUint32BE(5);
   const queueEmpty = blockQueue.length() === 0;
   blockQueue.queue(pieceIndex);
   if (queueEmpty) {
@@ -138,9 +140,11 @@ function bitfieldHandler(
   socket: net.Socket,
   pieces: PieceManager,
   blockQueue: BlockQueue,
-  payload: Buffer<ArrayBuffer>,
+  buffer: Buffer<ArrayBuffer>,
 ) {
   const queueEmpty = blockQueue.length() === 0;
+  // I forgot I'm passing the full message buffer here and not just the payload part
+  const payload = buffer.subarray(5);
 
   for (let i = 0; i < payload.length; i++) {
     const byte = payload[i];
