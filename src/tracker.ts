@@ -9,109 +9,118 @@ export type Peer = {
   port: number;
 };
 
-function createTrackerClient() {
-  const socket = dgram.createSocket("udp4");
-  const pending = new Map<number, { resolve: Function; reject: Function }>();
+class TrackerClient {
+  socket: dgram.Socket;
+  pendingRequests: Map<number, { resolve: Function; reject: Function }>;
 
-  socket.on("message", (msg, rinfo) => {
-    const transactionId = msg.readUint32BE(4);
-    const handler = pending.get(transactionId);
-    if (!handler) return;
+  constructor(socket: dgram.Socket) {
+    this.socket = socket;
+    this.pendingRequests = new Map();
+  }
 
-    const type = respType(msg);
+  setupSocketListeners() {
+    this.socket.on("message", (msg, _) => {
+      const transactionId = msg.readUint32BE(4);
+      const handler = this.pendingRequests.get(transactionId);
+      if (!handler) return;
 
-    try {
-      if (type === "connect") {
-        handler.resolve(msg);
-      } else if (type === "announce") {
-        handler.resolve(msg);
-      }
-    } catch (e) {
-      socket.close();
-      handler.reject(e);
-    } finally {
-      pending.delete(transactionId);
-    }
-  });
+      const type = respType(msg);
 
-  socket.on("error", (err) => {
-    for (const { reject } of pending.values()) {
-      reject(err);
-    }
-    pending.clear();
-  });
-
-  function connectToTracker(url: URL, torrent: Uint8Array<ArrayBufferLike>) {
-    return new Promise((resolve, reject) => {
-      const { buf: connReq, transactionId } = buildConnReq();
-
-      pending.set(transactionId, {
-        resolve: (msg) => {
-          pending.delete(transactionId);
-          onConnect(msg);
-        },
-        reject: (err) => {
-          pending.delete(transactionId);
-          reject(err);
-        },
-      });
-
-      socket.send(connReq, Number(url.port), url.hostname);
-
-      setTimeout(() => {
-        if (pending.has(transactionId)) {
-          pending.get(transactionId)?.reject(new Error("connect timeout"));
-          pending.delete(transactionId);
+      try {
+        if (type === "connect") {
+          handler.resolve(msg);
+        } else if (type === "announce") {
+          handler.resolve(msg);
         }
-      }, 15000);
-
-      function onConnect(msg: Buffer<ArrayBufferLike>) {
-        try {
-          const connResp = parseConnResp(msg);
-          const { buf: announceReq, transactionId: annReqId } =
-            buildAnnounceReq(connResp.connectionId, torrent);
-
-          pending.set(annReqId, {
-            resolve: (msg) => {
-              const announceResp = parseAnnounceResp(msg);
-              resolve(announceResp.peers);
-            },
-            reject: (err) => {
-              pending.delete(annReqId);
-              reject(err);
-            },
-          });
-
-          socket.send(announceReq, Number(url.port), url.hostname);
-
-          // announce timeout
-          setTimeout(() => {
-            if (pending.has(annReqId)) {
-              pending.get(annReqId)?.reject(new Error("announce timeout"));
-              pending.delete(annReqId);
-            }
-          }, 15000);
-        } catch (e) {
-          reject(e);
-        }
+      } catch (e) {
+        this.socket.close();
+        handler.reject(e);
+      } finally {
+        this.pendingRequests.delete(transactionId);
       }
+    });
+
+    this.socket.on("error", (err) => {
+      for (const { reject } of this.pendingRequests.values()) {
+        reject(err);
+      }
+      this.pendingRequests.clear();
     });
   }
 
-  return { connectToTracker, close: () => socket.close() };
+  async getPeers(url: URL, torrent: Buffer<ArrayBuffer>) {
+    const connectResponse = await this.connect(url);
+    let { connectionId } = parseConnResp(connectResponse);
+    const announceResp = await this.announce(connectionId, url, torrent);
+    return parseAnnounceResp(announceResp);
+  }
+
+  sendRequest(
+    url: URL,
+    requestBuffer: Buffer<ArrayBuffer>,
+    transactionId: number,
+    timeoutMs = 15000,
+  ): Promise<Buffer<ArrayBuffer>> {
+    const { port = "6881", hostname } = url;
+
+    return new Promise((resolve, reject) => {
+      this.pendingRequests.set(transactionId, {
+        resolve,
+        reject,
+      });
+
+      this.socket.send(requestBuffer, Number(port), hostname);
+
+      setTimeout(() => {
+        if (this.pendingRequests.has(transactionId)) {
+          this.pendingRequests
+            .get(transactionId)
+            ?.reject(new Error("connect timeout"));
+          this.pendingRequests.delete(transactionId);
+        }
+      }, timeoutMs);
+    });
+  }
+
+  connect(url: URL): Promise<Buffer<ArrayBuffer>> {
+    const { buf: connReq, transactionId } = buildConnReq();
+    return this.sendRequest(url, connReq, transactionId);
+  }
+
+  announce(
+    connectionId: bigint,
+    url: URL,
+    torrent: Buffer<ArrayBuffer>,
+  ): Promise<Buffer<ArrayBuffer>> {
+    const { buf: announceReq, transactionId: annReqId } = buildAnnounceReq(
+      connectionId,
+      torrent,
+    );
+    return this.sendRequest(url, announceReq, annReqId);
+  }
 }
 
 export default async function getPeers(
   torrent: Buffer<ArrayBufferLike>,
-): Promise<Peer[]> {
-  const client = createTrackerClient();
+): Promise<
+  {
+    status: "fulfilled" | "rejected";
+    value: { peers: { ip: string; port: number }[] };
+  }[]
+> {
+  const socket = dgram.createSocket("udp4");
+  const client = new TrackerClient(socket);
 
-  const promises = torrent["announce-list"].map(([tracker]) => {
-    const url = new URL(new TextDecoder().decode(tracker));
-    return client.connectToTracker(url, torrent);
-  });
+  client.setupSocketListeners();
 
-  return Promise.any(promises).finally(() => client.close());
+  const decoder = new TextDecoder();
+  const urls = torrent["announce-list"]
+    .map(([tracker]) => new URL(decoder.decode(tracker)))
+    // only handle udp trackers for now
+    .filter((url) => url.protocol === "udp:");
+  const promises = urls.map((url) => client.getPeers(url, torrent));
+
+  return Promise.allSettled(promises).finally(() => socket.close());
 }
 
 function buildConnReq() {
