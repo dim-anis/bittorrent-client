@@ -11,7 +11,7 @@ if (!torrentPath) {
 const torrent = torrentParser.open(process.argv[2]);
 
 async function main() {
-  download(torrent, torrent.info.name);
+  download(torrent, process.env.DOWNLOAD_DIR);
 }
 
 main();
