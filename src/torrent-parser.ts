@@ -38,7 +38,7 @@ export function open(filepath: string) {
 
 export function size(torrent: any): number {
   const size = torrent.info.files
-    ? torrent.info.files.map((file) => file.length).reduce((a, b) => a + b)
+    ? torrent.info.files.reduce((total, file) => (total += file.length), 0)
     : torrent.info.length;
 
   return Number(BigInt(size));
