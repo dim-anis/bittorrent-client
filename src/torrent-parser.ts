@@ -36,13 +36,15 @@ export function open(filepath: string) {
   return bencode.decode(fs.readFileSync(filepath));
 }
 
+// should probably handle BigInt if building a production ready torrent client
 export function size(torrent: any): number {
   const size = torrent.info.files
     ? torrent.info.files.reduce((total, file) => (total += file.length), 0)
     : torrent.info.length;
 
-  return Number(BigInt(size));
+  return size;
 }
+
 export function infoHash(torrent: any) {
   const info = bencode.encode(torrent["info"]);
   return crypto.createHash("sha1").update(info).digest();
