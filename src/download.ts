@@ -11,6 +11,7 @@ import { PieceManager } from "./pieces.ts";
 import { BlockQueue } from "./queue.ts";
 import { showEmptyProgressBar } from "./progressBar.ts";
 import { FileHandler } from "./files.ts";
+import { infoHash } from "./torrent-parser.ts";
 
 const HANDSHAKE_LENGTH = 68;
 
@@ -44,7 +45,7 @@ function download(
 
   const queue = new BlockQueue(torrent);
   onWholeMessage(socket, (msg) =>
-    msgHandler(msg, socket, pieces, queue, fileHandler),
+    msgHandler(msg, socket, pieces, queue, fileHandler, torrent),
   );
 }
 
@@ -96,8 +97,9 @@ function msgHandler(
   pieces: PieceManager,
   queue: BlockQueue,
   fileHandler: FileHandler,
+  torrent: any,
 ) {
-  if (isHandshake(msg)) {
+  if (isHandshake(msg, torrent)) {
     socket.write(buildInterested());
   } else {
     const message = parseMessage(msg);
@@ -178,11 +180,14 @@ function pieceHandler(
   }
 }
 
-function isHandshake(msg: Buffer<ArrayBuffer>) {
-  return (
-    msg.length === msg.readUint8(0) + 49 &&
-    msg.toString("utf8", 1, 20) === "BitTorrent protocol"
-  );
+function isHandshake(msg: Buffer<ArrayBuffer>, torrent: any) {
+  const isCorrectLength = msg.length === msg.readUint8(0) + 49;
+  const isCorrectPstr = msg.toString("utf8", 1, 20) === "BitTorrent protocol";
+  const ourInfoHash = infoHash(torrent);
+  const theirInfoHash = msg.subarray(28, 48);
+  const isInfoHashValid = ourInfoHash.equals(theirInfoHash);
+
+  return isCorrectLength && isCorrectPstr && isInfoHashValid;
 }
 function requestPiece(
   socket: net.Socket,
