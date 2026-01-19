@@ -58,8 +58,7 @@ export class PieceManager {
 
     if (this.isPieceComplete(pieceBlock.index)) {
       if (!this.isHashValid(pieceBlock.index)) {
-        this.pieces[pieceBlock.index].state = "idle";
-        this.pieces[pieceBlock.index].blocks.fill(BlockState.idle);
+        this.resetPiece(pieceBlock.index);
         return;
       }
 
@@ -86,6 +85,11 @@ export class PieceManager {
     return this.pieces[pieceIndex].blocks.every(
       (block) => block === BlockState.finished,
     );
+  }
+
+  resetPiece(pieceIndex: number) {
+    this.pieces[pieceIndex].state = "idle";
+    this.pieces[pieceIndex].blocks.fill(BlockState.idle);
   }
 
   isHashValid(pieceIndex: number): boolean {
