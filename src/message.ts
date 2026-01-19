@@ -1,18 +1,38 @@
 import * as utils from "./utils.ts";
 import { infoHash } from "./torrent-parser.ts";
+import { type PieceBlock } from "./queue.ts";
 
-export type Payload = {
+interface BaseMessage<T extends string> {
+  id: number;
+  size: number;
+  type: T;
+}
+export type ChokeMessage = BaseMessage<"choke">;
+export type UnchokeMessage = BaseMessage<"unchoke">;
+export interface HaveMessage extends BaseMessage<"have"> {
+  pieceIndex: number;
+}
+export interface BitfieldMessage extends BaseMessage<"bitfield"> {
+  bitfield: Buffer<ArrayBuffer>;
+}
+export interface PieceMessage extends BaseMessage<"piece"> {
   index: number;
   begin: number;
-  length?: number;
-  block?: Buffer<ArrayBuffer>;
-};
+  block: Buffer<ArrayBuffer>;
+}
 
-export type Message = {
-  size: number;
-  id?: number;
-  payload?: Payload;
-};
+export type KnownMessage =
+  | PieceMessage
+  | BitfieldMessage
+  | HaveMessage
+  | ChokeMessage
+  | UnchokeMessage;
+
+interface UnknownMessage extends BaseMessage<"unknown"> {
+  buffer: Buffer<ArrayBuffer>;
+}
+
+export type Message = KnownMessage | UnknownMessage;
 
 export function buildHandshake(torrent: Buffer<ArrayBufferLike>) {
   const buf = Buffer.alloc(68);
@@ -97,7 +117,7 @@ export function buildBitfield(
 
   return buf;
 }
-export function buildRequest(payload: Payload) {
+export function buildRequest(payload: PieceBlock) {
   const buf = Buffer.alloc(17);
   // length
   buf.writeUInt32BE(13, 0);
@@ -112,7 +132,7 @@ export function buildRequest(payload: Payload) {
 
   return buf;
 }
-export function buildPiece(payload: Payload) {
+export function buildPiece(payload: PieceMessage) {
   const buf = Buffer.alloc(payload.block.length + 13);
   // length
   buf.writeUInt32BE(payload.block.length + 9, 0);
@@ -127,7 +147,7 @@ export function buildPiece(payload: Payload) {
 
   return buf;
 }
-export function buildCancel(payload: Payload) {
+export function buildCancel(payload: PieceBlock) {
   const buf = Buffer.alloc(17);
   // length
   buf.writeUInt32BE(13, 0);
@@ -155,22 +175,41 @@ export function buildPort(payload: number) {
 }
 
 export function parseMessage(msg: Buffer<ArrayBuffer>): Message {
-  const id = msg.length > 4 ? msg.readUInt8(4) : undefined;
-  let payloadBuffer: any = msg.length > 5 ? msg.subarray(5) : undefined;
-  let parsedPayload: Message["payload"];
+  const id = msg.length > 4 ? msg.readUInt8(4) : -1;
+  const size = msg.length > 4 ? msg.readUint32BE(0) : 0;
+  let payloadBuffer = msg.length > 5 ? msg.subarray(5) : Buffer.alloc(0);
 
-  if (id === 6 || id === 7 || id === 8) {
-    const rest = payloadBuffer.subarray(8);
-    parsedPayload = {
+  let baseMessage = { id, size };
+
+  if (id === 0) {
+    return { ...baseMessage, type: "choke" };
+  } else if (id === 1) {
+    return { ...baseMessage, type: "unchoke" };
+  } else if (id === 4) {
+    return {
+      ...baseMessage,
+      type: "have",
+      pieceIndex: payloadBuffer.readUint32BE(0),
+    };
+  } else if (id === 5) {
+    return {
+      ...baseMessage,
+      type: "bitfield",
+      bitfield: payloadBuffer,
+    };
+  } else if (id === 7) {
+    return {
+      ...baseMessage,
+      type: "piece",
       index: payloadBuffer.readUint32BE(0),
       begin: payloadBuffer.readUint32BE(4),
+      block: payloadBuffer.subarray(8),
     };
-    parsedPayload[id === 7 ? "block" : "length"] = rest;
+  } else {
+    return {
+      ...baseMessage,
+      type: "unknown",
+      buffer: payloadBuffer,
+    };
   }
-
-  return {
-    size: msg.readUint32BE(0),
-    id: id,
-    payload: parsedPayload,
-  };
 }

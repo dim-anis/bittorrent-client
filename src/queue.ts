@@ -1,9 +1,14 @@
-import { type Payload } from "./message.ts";
 import { BLOCK_LEN, blocksPerPiece, blockLength } from "./torrent-parser.ts";
+
+export type PieceBlock = {
+  index: number;
+  begin: number;
+  length: number;
+};
 
 export class BlockQueue {
   #torrent: any;
-  #queue: Payload[];
+  #queue: PieceBlock[];
   choked: boolean;
 
   constructor(torrent: any) {
@@ -15,7 +20,7 @@ export class BlockQueue {
   queue(pieceIndex: number) {
     const nBlocks = blocksPerPiece(this.#torrent, pieceIndex);
     for (let i = 0; i < nBlocks; i++) {
-      const pieceBlock: Payload = {
+      const pieceBlock: PieceBlock = {
         index: pieceIndex,
         begin: i * BLOCK_LEN,
         length: blockLength(this.#torrent, pieceIndex, i),

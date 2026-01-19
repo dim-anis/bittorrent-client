@@ -1,14 +1,14 @@
 import net from "node:net";
 import {
+  type PieceMessage,
   buildHandshake,
   buildInterested,
   buildRequest,
   parseMessage,
-  type Payload,
 } from "./message.ts";
 import getPeers, { type Peer } from "./tracker.ts";
 import { PieceManager } from "./pieces.ts";
-import { BlockQueue } from "./queue.ts";
+import { type PieceBlock, BlockQueue } from "./queue.ts";
 import { showEmptyProgressBar } from "./progressBar.ts";
 import { FileHandler } from "./files.ts";
 import { infoHash } from "./torrent-parser.ts";
@@ -104,12 +104,23 @@ function msgHandler(
   } else {
     const message = parseMessage(msg);
 
-    if (message.id === 0) chokeHandler(socket);
-    if (message.id === 1) unchokeHandler(socket, pieces, queue);
-    if (message.id === 4) haveHandler(socket, pieces, queue, msg);
-    if (message.id === 5) bitfieldHandler(socket, pieces, queue, msg);
-    if (message.id === 7)
-      pieceHandler(socket, pieces, queue, fileHandler, message.payload!);
+    switch (message.type) {
+      case "choke":
+        chokeHandler(socket);
+        break;
+      case "unchoke":
+        unchokeHandler(socket, pieces, queue);
+        break;
+      case "have":
+        haveHandler(socket, pieces, queue, message.pieceIndex);
+        break;
+      case "bitfield":
+        bitfieldHandler(socket, pieces, queue, message.bitfield);
+        break;
+      case "piece":
+        pieceHandler(socket, pieces, queue, fileHandler, message);
+        break;
+    }
   }
 }
 
@@ -128,10 +139,8 @@ function haveHandler(
   socket: net.Socket,
   pieces: PieceManager,
   blockQueue: BlockQueue,
-  payload: Buffer<ArrayBuffer>,
+  pieceIndex: number,
 ) {
-  // piece index starts from offset 5
-  const pieceIndex = payload.readUint32BE(5);
   const queueEmpty = blockQueue.length() === 0;
   blockQueue.queue(pieceIndex);
   if (queueEmpty) {
@@ -142,14 +151,12 @@ function bitfieldHandler(
   socket: net.Socket,
   pieces: PieceManager,
   blockQueue: BlockQueue,
-  buffer: Buffer<ArrayBuffer>,
+  bitfield: Buffer<ArrayBuffer>,
 ) {
   const queueEmpty = blockQueue.length() === 0;
-  // I forgot I'm passing the full message buffer here and not just the payload part
-  const payload = buffer.subarray(5);
 
-  for (let i = 0; i < payload.length; i++) {
-    const byte = payload[i];
+  for (let i = 0; i < bitfield.length; i++) {
+    const byte = bitfield[i];
     for (let j = 0; j < 8; j++) {
       const pieceIndex = i * 8 + j;
       if (byte & (1 << (7 - j))) {
@@ -167,7 +174,7 @@ function pieceHandler(
   pieces: PieceManager,
   blockQueue: BlockQueue,
   fileHandler: FileHandler,
-  pieceResp: Payload,
+  pieceResp: PieceMessage,
 ) {
   pieces.markBlockFinished(pieceResp, fileHandler);
 

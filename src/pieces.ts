@@ -1,7 +1,8 @@
 import crypto from "node:crypto";
-import { type Payload } from "./message.ts";
 import { BLOCK_LEN, blocksPerPiece, pieceLength } from "./torrent-parser.ts";
 import { FileHandler } from "./files.ts";
+import { type PieceBlock } from "./queue.ts";
+import { type PieceMessage } from "./message.ts";
 
 const BlockState = {
   idle: 0,
@@ -38,22 +39,22 @@ export class PieceManager {
     }
   }
 
-  markBlockRequested(pieceBlock: Payload): void {
+  markBlockRequested(pieceBlock: PieceBlock): void {
     const blockIndex = pieceBlock.begin / BLOCK_LEN;
     this.pieces[pieceBlock.index].blocks[blockIndex] = BlockState.inProgress;
   }
 
-  markBlockFinished(pieceBlock: Payload, fileHandler: FileHandler): void {
+  markBlockFinished(pieceBlock: PieceMessage, fileHandler: FileHandler): void {
     if (this.pieces[pieceBlock.index].state === "finished") {
       return;
     }
 
     const blockIndex = pieceBlock.begin / BLOCK_LEN;
     this.pieces[pieceBlock.index].blocks[blockIndex] = BlockState.finished;
-    const blockLen = pieceBlock.block?.length;
+    const blockLen = pieceBlock.block.length;
 
     const pieceBuffer = this.pieces[pieceBlock.index].buffer;
-    pieceBlock.block!.copy(pieceBuffer, pieceBlock.begin, 0, blockLen);
+    pieceBlock.block.copy(pieceBuffer, pieceBlock.begin, 0, blockLen);
 
     if (this.isPieceComplete(pieceBlock.index)) {
       if (!this.isHashValid(pieceBlock.index)) {
@@ -70,7 +71,7 @@ export class PieceManager {
     }
   }
 
-  isBlockComplete(pieceBlock: Payload) {
+  isBlockComplete(pieceBlock: PieceBlock) {
     const blockIndex = pieceBlock.begin / BLOCK_LEN;
     return (
       this.pieces[pieceBlock.index].blocks[blockIndex] === BlockState.finished
