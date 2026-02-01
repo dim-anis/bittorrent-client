@@ -1,7 +1,7 @@
 import crypto from "node:crypto";
 
 // id is generated once
-let id: Buffer<ArrayBuffer> | null = null;
+let id: Buffer<ArrayBufferLike> | null = null;
 
 export function genId() {
   if (!id) {
