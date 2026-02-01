@@ -17,9 +17,9 @@ const MAX_PIPELINE = 10;
 
 export default async (torrent: any, downloadDir = "downloads") => {
   const peers = await getAllPeers(torrent);
-  const availablePeers = peers
-    .filter((res) => res.status === "fulfilled")
-    .flatMap((peer) => peer.value.peers);
+  const availablePeers = peers.flatMap(res =>
+    res.status === 'fulfilled' ? res.value.peers : []
+  );
   const fileHandler = new FileHandler(torrent.info, downloadDir);
   const pieces = new PieceManager(torrent, fileHandler);
 
