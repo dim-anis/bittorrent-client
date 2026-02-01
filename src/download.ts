@@ -9,7 +9,6 @@ import {
 import getAllPeers, { type Peer } from "./tracker.ts";
 import { PieceManager } from "./pieces.ts";
 import { type PieceBlock, BlockQueue } from "./queue.ts";
-import { showEmptyProgressBar } from "./progressBar.ts";
 import { FileHandler } from "./files.ts";
 import { infoHash } from "./torrent-parser.ts";
 
@@ -23,7 +22,6 @@ export default async (torrent: any, downloadDir = "downloads") => {
   const pieces = new PieceManager(torrent);
   const fileHandler = new FileHandler(torrent.info, downloadDir);
 
-  showEmptyProgressBar();
   availablePeers.forEach((peer) =>
     download(peer, torrent, pieces, fileHandler),
   );

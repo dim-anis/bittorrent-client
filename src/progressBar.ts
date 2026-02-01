@@ -13,9 +13,3 @@ export function showProgressBar(totalItems: number, downloadedItems: number) {
   process.stdout.write("\r");
   process.stdout.write(bar);
 }
-
-// display empty progress bar immediately
-export function showEmptyProgressBar() {
-  process.stdout.write("Downloading...\n");
-  process.stdout.write(`[${"-".repeat(barSettings.width)}] ${0}%`);
-}
