@@ -13,6 +13,7 @@ import { FileHandler } from "./files.ts";
 import { infoHash } from "./torrent-parser.ts";
 
 const HANDSHAKE_LENGTH = 68;
+const MAX_PIPELINE = 10;
 
 export default async (torrent: any, downloadDir = "downloads") => {
   const peers = await getAllPeers(torrent);
@@ -175,6 +176,7 @@ function pieceHandler(
   pieceResp: PieceMessage,
 ) {
   pieces.markBlockFinished(pieceResp, fileHandler);
+  blockQueue.requestCount--;
 
   if (pieces.isTorrentComplete()) {
     fileHandler.closeDescriptors();
@@ -203,12 +205,12 @@ function requestPiece(
     return null;
   }
 
-  while (blockQueue.length()) {
-    const pieceBlock = blockQueue.deque() as Payload;
+  while (blockQueue.length() && blockQueue.requestCount < MAX_PIPELINE) {
+    const pieceBlock = blockQueue.deque() as PieceBlock;
     if (!pieces.isBlockComplete(pieceBlock)) {
+      blockQueue.requestCount++;
       socket.write(buildRequest(pieceBlock));
       pieces.markBlockRequested(pieceBlock);
-      break;
     }
   }
 }

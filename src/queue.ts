@@ -10,11 +10,13 @@ export class BlockQueue {
   #torrent: any;
   #queue: PieceBlock[];
   choked: boolean;
+  requestCount: number;
 
   constructor(torrent: any) {
     this.#torrent = torrent;
     this.#queue = [];
     this.choked = true;
+    this.requestCount = 0;
   }
 
   queue(pieceIndex: number) {
