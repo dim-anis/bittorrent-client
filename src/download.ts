@@ -35,7 +35,13 @@ function download(
 ) {
   const socket = new net.Socket();
 
-  socket.on("error", () => {});
+  socket.setTimeout(30000);
+
+  socket.on("error", () => { console.log(`could not handshake with "${peer.ip}:${peer.port}"`) });
+  socket.on("timeout", () => {
+    console.log('connection timeout');
+    socket.destroy()
+  });
 
   socket.connect(peer.port, peer.ip, () => {
     socket.write(buildHandshake(torrent));
