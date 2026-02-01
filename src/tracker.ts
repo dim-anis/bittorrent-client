@@ -100,8 +100,8 @@ class TrackerClient {
   }
 }
 
-export default async function getPeers(
-  torrent: Buffer<ArrayBufferLike>,
+export default async function getAllPeers(
+  torrent: any,
 ): Promise<PromiseSettledResult<{ peers: Peer[] }>[]> {
   const socket = dgram.createSocket("udp4");
   const client = new TrackerClient(socket);

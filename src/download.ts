@@ -6,7 +6,7 @@ import {
   buildRequest,
   parseMessage,
 } from "./message.ts";
-import getPeers, { type Peer } from "./tracker.ts";
+import getAllPeers, { type Peer } from "./tracker.ts";
 import { PieceManager } from "./pieces.ts";
 import { type PieceBlock, BlockQueue } from "./queue.ts";
 import { showEmptyProgressBar } from "./progressBar.ts";
@@ -16,7 +16,7 @@ import { infoHash } from "./torrent-parser.ts";
 const HANDSHAKE_LENGTH = 68;
 
 export default async (torrent: any, downloadDir = "downloads") => {
-  const peers = await getPeers(torrent);
+  const peers = await getAllPeers(torrent);
   const availablePeers = peers
     .filter((res) => res.status === "fulfilled")
     .flatMap((peer) => peer.value.peers);
