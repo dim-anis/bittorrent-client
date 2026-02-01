@@ -48,7 +48,7 @@ class TrackerClient {
     });
   }
 
-  async getPeers(url: URL, torrent: Buffer<ArrayBuffer>) {
+  async getPeers(url: URL, torrent: any) {
     const connectResponse = await this.connect(url);
     let { connectionId } = parseConnResp(connectResponse);
     const announceResp = await this.announce(connectionId, url, torrent);
@@ -90,7 +90,7 @@ class TrackerClient {
   announce(
     connectionId: bigint,
     url: URL,
-    torrent: Buffer<ArrayBuffer>,
+    torrent: any,
   ): Promise<Buffer<ArrayBuffer>> {
     const { buf: announceReq, transactionId: annReqId } = buildAnnounceReq(
       connectionId,
@@ -167,7 +167,7 @@ function parseAnnounceResp(res: Buffer<ArrayBuffer>) {
 
 function buildAnnounceReq(
   connId: bigint,
-  torrent: Uint8Array<ArrayBuffer>,
+  torrent: any,
   port = 6881,
 ) {
   const buf = Buffer.allocUnsafe(98);
