@@ -20,11 +20,11 @@ export default async (torrent: any, downloadDir = "downloads") => {
   const availablePeers = peers
     .filter((res) => res.status === "fulfilled")
     .flatMap((peer) => peer.value.peers);
-  const pieces = new PieceManager(torrent);
   const fileHandler = new FileHandler(torrent.info, downloadDir);
+  const pieces = new PieceManager(torrent, fileHandler);
 
   availablePeers.forEach((peer) =>
-    download(peer, torrent, pieces, fileHandler),
+    download(peer, torrent, pieces),
   );
 };
 
@@ -32,7 +32,6 @@ function download(
   peer: Peer,
   torrent: Buffer<ArrayBufferLike>,
   pieces: PieceManager,
-  fileHandler: FileHandler,
 ) {
   const socket = new net.Socket();
 
@@ -44,7 +43,7 @@ function download(
 
   const queue = new BlockQueue(torrent);
   onWholeMessage(socket, (msg) =>
-    msgHandler(msg, socket, pieces, queue, fileHandler, torrent),
+    msgHandler(msg, socket, pieces, queue, torrent),
   );
 }
 
@@ -95,7 +94,6 @@ function msgHandler(
   socket: net.Socket,
   pieces: PieceManager,
   queue: BlockQueue,
-  fileHandler: FileHandler,
   torrent: any,
 ) {
   if (isHandshake(msg, torrent)) {
@@ -117,7 +115,7 @@ function msgHandler(
         bitfieldHandler(socket, pieces, queue, message.bitfield);
         break;
       case "piece":
-        pieceHandler(socket, pieces, queue, fileHandler, message);
+        pieceHandler(socket, pieces, queue, message);
         break;
     }
   }
@@ -172,14 +170,13 @@ function pieceHandler(
   socket: net.Socket,
   pieces: PieceManager,
   blockQueue: BlockQueue,
-  fileHandler: FileHandler,
   pieceResp: PieceMessage,
 ) {
-  pieces.markBlockFinished(pieceResp, fileHandler);
   blockQueue.requestCount--;
+  pieces.markBlockFinished(pieceResp);
 
   if (pieces.isTorrentComplete()) {
-    fileHandler.closeDescriptors();
+    pieces.finalizeDownload();
     socket.end();
     console.log("Download finished");
   } else {

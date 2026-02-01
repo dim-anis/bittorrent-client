@@ -25,10 +25,12 @@ class Piece {
 
 export class PieceManager {
   pieces: Piece[];
+  fileHandler: FileHandler;
   #torrent: any;
 
-  constructor(torrent: any) {
+  constructor(torrent: any, fileHandler: FileHandler) {
     this.#torrent = torrent;
+    this.fileHandler = fileHandler;
     this.pieces = [];
     const nPieces = torrent.info.pieces.length / 20;
     for (let i = 0; i < nPieces; i++) {
@@ -44,7 +46,7 @@ export class PieceManager {
     this.pieces[pieceBlock.index].blocks[blockIndex] = BlockState.inProgress;
   }
 
-  markBlockFinished(pieceBlock: PieceMessage, fileHandler: FileHandler): void {
+  markBlockFinished(pieceBlock: PieceMessage): void {
     if (this.pieces[pieceBlock.index].state === "finished") {
       return;
     }
@@ -63,7 +65,7 @@ export class PieceManager {
       }
 
       this.pieces[pieceBlock.index].state = "finished";
-      fileHandler.writePieceToDisk(pieceBlock.index, pieceBuffer);
+      this.fileHandler.writePieceToDisk(pieceBlock.index, pieceBuffer);
 
       // clear buffer after writing piece to disk
       this.pieces[pieceBlock.index].buffer = Buffer.alloc(0);
@@ -107,5 +109,8 @@ export class PieceManager {
     const startIndex = pieceIndex * hashLength;
     const endIndex = startIndex + hashLength;
     return this.#torrent.info.pieces.subarray(startIndex, endIndex);
+  }
+  finalizeDownload() {
+    this.fileHandler.closeDescriptors();
   }
 }
